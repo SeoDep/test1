@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ratchet Straps Filter System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f7fafc; /* bg-gray-100 */
+        }
+        .category-page-title {
+            border: 4px solid #ef4444; /* border-red-500 */
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+            background-color: white;
+            text-align: center;
+        }
+        .legend-box {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: #e5e7eb; /* bg-gray-200 */
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 20rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @media (min-width: 768px) { .legend-box { margin-left: 0; margin-right: 0; } }
+
+        .controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .action-button {
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .action-button:hover {
+            background-color: #2563eb; /* hover:bg-blue-600 */
+        }
+        .action-button.secondary {
+            background-color: #6b7280; /* bg-gray-500 */
+        }
+        .action-button.secondary:hover {
+            background-color: #4b5563; /* hover:bg-gray-600 */
+        }
+
+        .column-container { display: flex; flex-direction: column; gap: 1rem; }
+        @media (min-width: 1024px) { .column-container { flex-direction: row; gap: 1.5rem; } }
+
+        .sub-category-column { background-color: white; padding: 0.75rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+        @media (min-width: 1024px) { .sub-category-column { width: 25%; } }
+        @media (min-width: 1280px) { .sub-category-column { width: 20%; } }
+
+        .filters-grid-wrapper { flex-grow: 1; }
+        .filters-grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 1rem; }
+        @media (min-width: 640px) { .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1024px) { .filters-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (min-width: 1280px) { .filters-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        
+        .filter-column { position: relative; background-color: white; padding: 0.75rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); cursor: grab; display: flex; flex-direction: column; }
+        .filter-column-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; text-align: center; color: #4b5563; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; padding-right: 25px; }
+        @media (min-width: 768px) { .filter-column-title { font-size: 1.125rem; } }
+        .filter-column-content { display: flex; flex-direction: column; gap: 0.5rem; max-height: 350px; overflow-y: auto; flex-grow: 1; margin-bottom: 0.5rem;}
+        
+        .filter-item { padding: 0.5rem; border-width: 2px; border-radius: 0.375rem; color: #374151; cursor: grab; transition: background-color 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .filter-item-content-wrapper { display: flex; align-items: center; flex-grow: 1; overflow: hidden; }
+        .filter-item-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .filter-item:hover { background-color: #e5e7eb; }
+        .filter-item.dragging { opacity: 0.5; background: #d1d5db; }
+        .search-volume { font-size: 0.8em; color: #6b7280; margin-left: 0.5rem; white-space: nowrap; }
+        
+        .sub-category-item { border-color: #22c55e; } .sub-category-item:hover { background-color: #dcfce7; }
+        .filter-value-item { border-color: #3b82f6; } .filter-value-item:hover { background-color: #dbeafe; }
+        
+        .filter-column-content::-webkit-scrollbar { width: 8px; }
+        .filter-column-content::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .filter-column-content::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .filter-column-content::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        .info-box { background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; text-align: center; }
+        
+        .column-remove-btn { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; line-height: 1; cursor: pointer; z-index: 10; }
+        .column-remove-btn:hover { background-color: #ffcdd2; color: #b71c1c; }
+        .item-remove-btn { padding: 0 6px; color: #c62828; font-weight: bold; font-size: 20px; cursor: pointer; align-self: center; line-height: 1; margin-left: 8px; }
+        .item-remove-btn:hover { color: #b71c1c; }
+        .add-item-btn {
+            background-color: #d1fae5; /* bg-green-100 */
+            color: #065f46; /* text-green-700 */
+            padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: center;
+            margin-top: 0.5rem; /* mt-2 */
+            border: 1px dashed #6ee7b7; /* border-green-300 */
+        }
+        .add-item-btn:hover {
+            background-color: #a7f3d0; /* hover:bg-green-200 */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="category-page-title">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800" contenteditable="true">Ratchet Straps</h1>
+    </div>
+
+    <div class="info-box">
+        <p class="text-sm md:text-base" contenteditable="true">
+            Total Average Monthly Searches (Mar 2024 - Feb 2025): <strong class="font-semibold">27.6K</strong>
+        </p>
+    </div>
+
+    <div class="controls-container">
+        <button id="undoBtn" class="action-button secondary" title="Undo last removal">Undo Last Action</button>
+        <button id="addNewColumnBtn" class="action-button" title="Add a new filter column">+ Add New Filter Column</button>
+    </div>
+
+    <div class="legend-box">
+        <h2 class="text-lg md:text-xl font-semibold mb-2 text-gray-700" contenteditable="true">Legend:</h2>
+        <ul class="list-none p-0 text-sm md:text-base">
+            <li class="mb-1 flex items-center"><span class="inline-block w-4 h-4 border-4 border-red-500 mr-2"></span> <span contenteditable="true">Category Page</span></li>
+            <li class="mb-1 flex items-center"><span class="inline-block w-4 h-4 border-4 border-green-500 mr-2"></span> <span contenteditable="true">Sub-category Page</span></li>
+            <li class="flex items-center"><span class="inline-block w-4 h-4 border-4 border-blue-500 mr-2"></span> <span contenteditable="true">Filter</span></li>
+        </ul>
+    </div>
+
+    <div class="column-container">
+        <div class="sub-category-column filter-column" id="subCategoryCol" draggable="true">
+            <h2 class="filter-column-title" contenteditable="true">Strap Types (Sub-categories)</h2>
+            <div class="filter-column-content" data-column-type="sub-category">
+                </div>
+            <button class="add-item-btn" data-column-id="subCategoryCol">+ Add Item</button>
+        </div>
+
+        <div class="filters-grid-wrapper">
+            <div class="filters-grid" id="filtersGridContainer">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let draggedItem = null;
+            let draggedColumn = null;
+            let lastRemoved = null; // For undo functionality {element, parent, nextSibling, type: 'item'/'column'}
+
+            const undoBtn = document.getElementById('undoBtn');
+            const addNewColumnBtn = document.getElementById('addNewColumnBtn');
+            const subCategoryColContent = document.querySelector('#subCategoryCol .filter-column-content');
+            const filtersGridContainer = document.getElementById('filtersGridContainer');
+            const mainColumnContainer = document.querySelector('.column-container');
+
+            // --- Initial Data Setup ---
+            const initialData = {
+                subCategories: [
+                    { text: "Small", volume: "(1.6K)" }, { text: "Intermediate", volume: "(3.9K)" },
+                    { text: "Heavy Duty", volume: "(4.1K)" }, { text: "Large", volume: "(160)" },
+                    { text: "Light Duty", volume: "(110)" }, { text: "Ergonomic", volume: "(100)" },
+                    { text: "Bungee", volume: "(80)" }
+                ],
+                filterColumns: [
+                    { id: "weightCapacityCol", title: "Most Searched by Weight Capacity", items: [
+                        { text: "0.5 Tonne", volume: "(20)" }, { text: "0.8 Tonne", volume: "(30)" },
+                        { text: "1 Tonne", volume: "(110)" }, { text: "2 Tonne", volume: "(250)" },
+                        { text: "2.5 Tonne", volume: "(110)" }, { text: "5-6 Tonne", volume: "(1.5K)" },
+                        { text: "10 Tonne", volume: "(480)" }, { text: "20 Tonne", volume: "(30)" }
+                    ]},
+                    { id: "strapWidthCol", title: "Most Searched by Strap Width", items: [
+                        { text: "10 mm", volume: "(30)" }, { text: "19 mm", volume: "(30)" }, { text: "25 mm", volume: "(1.7K)" },
+                        { text: "35 mm", volume: "(240)" }, { text: "38 mm", volume: "(70)" }, { text: "40 mm", volume: "(10)" },
+                        { text: "50 mm", volume: "(1.7K)" }, { text: "75 mm", volume: "(240)" }, { text: "100 mm", volume: "(30)" }
+                    ]},
+                    { id: "strapLengthCol", title: "Most Searched by Strap Length", items: [
+                        { text: "2 Meter", volume: "(110)" }, { text: "4 Meter", volume: "(70)" }, { text: "6 Meter", volume: "(320)" },
+                        { text: "7 Meter", volume: "(100)" }, { text: "8 Meter", volume: "(320)" }, { text: "10 Meter", volume: "(1.2K)" },
+                        { text: "15 Meter", volume: "(140)" }, { text: "20 Meter", volume: "(110)" }
+                    ]},
+                    { id: "endFittingsCol", title: "Most Searched by End Fittings", items: [
+                        { text: "Endless", volume: "(4.2K)" }, { text: "Flat Hook", volume: "(160)" }, { text: "J Hook", volume: "(210)" },
+                        { text: "Claw Hook", volume: "(210)" }, { text: "Snap Hook", volume: "(60)" }, { text: "Double J Hook", volume: "(110)" },
+                        { text: "Chassis Hook", volume: "(10)" }, { text: "G Hook", volume: "(10)" }
+                    ]},
+                    { id: "featuresCol", title: "Most Searched by Features", items: [
+                        { text: "Stainless Steel", volume: "(900)" }, { text: "Quick Release", volume: "(170)" }, { text: "Rust Proof", volume: "(20)" },
+                        { text: "UV Resistant", volume: "(20)" }, { text: "Heat Resistant", volume: "(10)" }, { text: "Fire Proof", volume: "(10)" }
+                    ]},
+                    { id: "cargoTypeCol", title: "Most Searched by Cargo Type", items: [
+                        { text: "Vehicle", volume: "(4.3K)" }, { text: "Box", volume: "(510)" }, { text: "Boats", volume: "(400)" },
+                        { text: "Motorcycle", volume: "(400)" }, { text: "Kayak", volume: "(380)" }, { text: "Surfboard", volume: "(110)" },
+                        { text: "Bicycle", volume: "(70)" }, { text: "ATV", volume: "(40)" }, { text: "Jet Ski", volume: "(70)" }
+                    ]},
+                    { id: "colorCol", title: "Most Searched Ratchet Straps by Color", items: [
+                        { text: "Black", volume: "(930)" }, { text: "Blue", volume: "(450)" }, { text: "Green", volume: "(300)" },
+                        { text: "Orange", volume: "(210)" }, { text: "Red", volume: "(100)" }, { text: "White", volume: "(80)" }, { text: "Yellow", volume: "(50)" }
+                    ]},
+                    { id: "usecaseCol", title: "Most Searched by Usecase", items: [
+                        { text: "Tow Strap", volume: "(2.2K)" }, { text: "Recovery", volume: "(1.4K)" }, { text: "Automotive", volume: "(900)" },
+                        { text: "Warehouse", volume: "(400)" }, { text: "Marine", volume: "(30)" }, { text: "Military", volume: "(20)" },
+                        { text: "Lifting", volume: "(20)" }, { text: "Pallets", volume: "(10)" }
+                    ]},
+                    { id: "marketplaceCol", title: "Most Searched by Marketplace", items: [
+                        { text: "Amazon", volume: "(600)" }, { text: "eBay", volume: "(200)" }, { text: "Screwfix", volume: "(110)" },
+                        { text: "Toolstation", volume: "(80)" }
+                    ]},
+                    { id: "ringsCol", title: "Most Searched Rings", items: [
+                        { text: "D Ring", volume: "(450)" }, { text: "Rigging Ring", volume: "(90)" }, { text: "Delta Ring", volume: "(50)" },
+                        { text: "Lashing Ring", volume: "(10)" }
+                    ]},
+                    { id: "loadPlatformCol", title: "Most Searched by Load Platform", items: [
+                        { text: "Roof Rack", volume: "(4.6K)" }, { text: "Trailer", volume: "(2.8K)" }, { text: "Caravan", volume: "(110)" },
+                        { text: "Truck Bed", volume: "(70)" }, { text: "Pickup Truck", volume: "(20)" }
+                    ]},
+                    { id: "brandCol", title: "Most Searched by Brand", items: [
+                        { text: "Silverline", volume: "(5.3K)" }, { text: "Sealey", volume: "(1K)" }, { text: "Draper", volume: "(500)" },
+                        { text: "Stanley", volume: "(200)" }
+                    ]}
+                ]
+            };
+
+            // --- Create Element Functions ---
+            function createFilterItemElement(itemData, itemClass) {
+                const itemElement = document.createElement('div');
+                itemElement.className = `filter-item ${itemClass}`;
+                itemElement.draggable = true;
+
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'filter-item-content-wrapper';
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'filter-item-text';
+                textSpan.textContent = itemData.text;
+                textSpan.contentEditable = "true";
+                contentWrapper.appendChild(textSpan);
+
+                if (itemData.volume) {
+                    const volumeSpan = document.createElement('span');
+                    volumeSpan.className = 'search-volume';
+                    volumeSpan.textContent = itemData.volume;
+                    volumeSpan.contentEditable = "true";
+                    contentWrapper.appendChild(volumeSpan);
+                }
+                itemElement.appendChild(contentWrapper);
+                initializeFilterItem(itemElement); // Adds drag, remove btn, edit listeners
+                return itemElement;
+            }
+
+            function createFilterColumnElement(columnData) {
+                const columnElement = document.createElement('div');
+                columnElement.className = 'filter-column';
+                columnElement.id = columnData.id || `column-${Date.now()}`; // Ensure unique ID
+                columnElement.draggable = true;
+
+                const titleElement = document.createElement('h3');
+                titleElement.className = 'filter-column-title';
+                titleElement.textContent = columnData.title;
+                titleElement.contentEditable = "true";
+                columnElement.appendChild(titleElement);
+
+                const contentElement = document.createElement('div');
+                contentElement.className = 'filter-column-content';
+                contentElement.dataset.columnType = "filter";
+                columnData.items.forEach(itemData => {
+                    contentElement.appendChild(createFilterItemElement(itemData, 'filter-value-item'));
+                });
+                columnElement.appendChild(contentElement);
+                
+                const addItemBtn = document.createElement('button');
+                addItemBtn.className = 'add-item-btn';
+                addItemBtn.textContent = '+ Add Item';
+                addItemBtn.dataset.columnId = columnElement.id;
+                columnElement.appendChild(addItemBtn);
+
+                initializeFilterColumn(columnElement); // Adds drag, remove btn, edit listeners, add item btn listener
+                return columnElement;
+            }
+            
+            // --- Initialization Functions ---
+            function initializeFilterItem(itemElement) {
+                itemElement.addEventListener('dragstart', handleDragStartItem);
+                itemElement.addEventListener('dragend', handleDragEndItem);
+                addItemRemoveButton(itemElement);
+                addContentEditableListeners(itemElement.querySelector('.filter-item-text'));
+                const volumeSpan = itemElement.querySelector('.search-volume');
+                if (volumeSpan) addContentEditableListeners(volumeSpan);
+            }
+
+            function initializeFilterColumn(columnElement) {
+                addColumnRemoveButton(columnElement);
+                columnElement.addEventListener('dragstart', handleDragStartColumn);
+                columnElement.addEventListener('dragend', handleDragEndColumn);
+                addContentEditableListeners(columnElement.querySelector('.filter-column-title'));
+                columnElement.querySelector('.add-item-btn').addEventListener('click', handleAddItemToColumn);
+            }
+
+            // Populate initial sub-categories
+            initialData.subCategories.forEach(itemData => {
+                subCategoryColContent.appendChild(createFilterItemElement(itemData, 'sub-category-item'));
+            });
+            initializeFilterColumn(document.getElementById('subCategoryCol')); // Initialize the main subCategoryCol itself
+
+            // Populate initial filter columns
+            initialData.filterColumns.forEach(columnData => {
+                filtersGridContainer.appendChild(createFilterColumnElement(columnData));
+            });
+
+            // --- Event Handlers ---
+            function handleDragStartItem(e) {
+                if (e.target.classList.contains('item-remove-btn') || e.target.isContentEditable) {
+                    e.preventDefault(); return;
+                }
+                draggedItem = this;
+                setTimeout(() => this.classList.add('dragging'), 0);
+                e.dataTransfer.effectAllowed = 'move';
+            }
+            function handleDragEndItem() {
+                if (draggedItem) draggedItem.classList.remove('dragging');
+                draggedItem = null;
+            }
+
+            function handleDragStartColumn(e) {
+                if (e.target.classList.contains('column-remove-btn') || e.target.closest('.filter-item') || e.target.classList.contains('add-item-btn') || e.target.isContentEditable) {
+                     if (!e.target.closest('.filter-item') && !e.target.classList.contains('add-item-btn')) e.preventDefault();
+                    return;
+                }
+                draggedColumn = this;
+                setTimeout(() => this.classList.add('dragging'), 0);
+                e.dataTransfer.effectAllowed = 'move';
+            }
+            function handleDragEndColumn() {
+                if (draggedColumn) draggedColumn.classList.remove('dragging');
+                draggedColumn = null;
+            }
+
+            function addItemRemoveButton(itemElement) {
+                const removeBtn = itemElement.querySelector('.item-remove-btn') || document.createElement('span');
+                if (!removeBtn.classList.contains('item-remove-btn')) { // if it's a new button
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.className = 'item-remove-btn';
+                    removeBtn.setAttribute('title', 'Remove item');
+                    itemElement.appendChild(removeBtn);
+                }
+                removeBtn.onclick = (e) => { // Use onclick to easily replace if re-initializing
+                    e.stopPropagation();
+                    lastRemoved = { element: itemElement, parent: itemElement.parentElement, nextSibling: itemElement.nextElementSibling, type: 'item' };
+                    itemElement.remove();
+                    undoBtn.disabled = false;
+                };
+            }
+
+            function addColumnRemoveButton(columnElement) {
+                const removeBtn = columnElement.querySelector('.column-remove-btn') || document.createElement('div');
+                if (!removeBtn.classList.contains('column-remove-btn')) {
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.className = 'column-remove-btn';
+                    removeBtn.setAttribute('title', 'Remove column');
+                    columnElement.appendChild(removeBtn);
+                }
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    lastRemoved = { element: columnElement, parent: columnElement.parentElement, nextSibling: columnElement.nextElementSibling, type: 'column' };
+                    columnElement.remove();
+                    undoBtn.disabled = false;
+                };
+            }
+            
+            function addContentEditableListeners(element) {
+                if (!element) return;
+                element.addEventListener('focus', () => {
+                    const draggableParentItem = element.closest('.filter-item');
+                    const draggableParentColumn = element.closest('.filter-column');
+                    if (draggableParentItem) draggableParentItem.draggable = false;
+                    if (draggableParentColumn) draggableParentColumn.draggable = false;
+                });
+                element.addEventListener('blur', () => {
+                    const draggableParentItem = element.closest('.filter-item');
+                    const draggableParentColumn = element.closest('.filter-column');
+                    if (draggableParentItem) draggableParentItem.draggable = true;
+                    if (draggableParentColumn) draggableParentColumn.draggable = true;
+                });
+            }
+
+            document.querySelectorAll('.filter-column-content').forEach(contentArea => {
+                contentArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (!draggedItem || !contentArea.contains(draggedItem.parentElement) && contentArea.dataset.columnType !== draggedItem.parentElement.dataset.columnType) {
+                        // Allow dragging only within same column type or if it's the original parent
+                        if (draggedItem && contentArea !== draggedItem.parentElement) return;
+                    }
+                    const afterElement = getDragAfterElement(contentArea, e.clientY);
+                    if (draggedItem) { // Ensure draggedItem is not null
+                        if (afterElement == null) {
+                            contentArea.appendChild(draggedItem);
+                        } else {
+                            contentArea.insertBefore(draggedItem, afterElement);
+                        }
+                    }
+                });
+            });
+            
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.filter-item:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            mainColumnContainer.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (!draggedColumn) return;
+                const afterElement = getDragAfterColumnInMain(mainColumnContainer, e.clientX, draggedColumn);
+                if (afterElement) {
+                    mainColumnContainer.insertBefore(draggedColumn, afterElement);
+                } else {
+                    // Check if it should be appended to filtersGridContainer or mainColumnContainer
+                    if (draggedColumn.id !== 'subCategoryCol' && !filtersGridContainer.contains(draggedColumn)) {
+                         // If a filter column is dragged to the main area, but not over another column,
+                         // it should ideally go into the filtersGridContainer.
+                         // This logic is complex; for now, it might append to main container if not handled by grid.
+                         filtersGridContainer.appendChild(draggedColumn); // Try to force into grid
+                    } else {
+                        mainColumnContainer.appendChild(draggedColumn);
+                    }
+                }
+            });
+            
+            filtersGridContainer.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (!draggedColumn || draggedColumn.id === 'subCategoryCol') return;
+                const afterElement = getDragAfterColumnInGrid(filtersGridContainer, e.clientX, draggedColumn);
+                if (afterElement == null) {
+                    filtersGridContainer.appendChild(draggedColumn);
+                } else {
+                    filtersGridContainer.insertBefore(draggedColumn, afterElement);
+                }
+            });
+
+            function getDragAfterColumnInMain(container, x, draggedElement) {
+                const children = [...container.children].filter(child => child !== draggedElement && child.classList.contains('filter-column'));
+                return children.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = x - box.left - box.width / 2;
+                    if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; }
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            function getDragAfterColumnInGrid(container, x, draggedElement) {
+                const draggableElements = [...container.querySelectorAll('.filter-column:not(.dragging):not(#subCategoryCol)')].filter(el => el !== draggedElement);
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = x - box.left - box.width / 2;
+                    if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; }
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            // --- Undo Functionality ---
+            undoBtn.disabled = true; // Initially disabled
+            undoBtn.addEventListener('click', () => {
+                if (lastRemoved && lastRemoved.element && lastRemoved.parent) {
+                    lastRemoved.parent.insertBefore(lastRemoved.element, lastRemoved.nextSibling);
+                    // Re-initialize buttons and listeners for the undone element
+                    if (lastRemoved.type === 'item') {
+                        initializeFilterItem(lastRemoved.element);
+                    } else if (lastRemoved.type === 'column') {
+                        initializeFilterColumn(lastRemoved.element);
+                         // Re-initialize items within the restored column
+                        lastRemoved.element.querySelectorAll('.filter-item').forEach(item => initializeFilterItem(item));
+                    }
+                    lastRemoved = null;
+                    undoBtn.disabled = true;
+                }
+            });
+
+            // --- Add Item Functionality ---
+            function handleAddItemToColumn(event) {
+                const columnId = event.target.dataset.columnId;
+                const columnElement = document.getElementById(columnId);
+                if (!columnElement) return;
+                const columnContent = columnElement.querySelector('.filter-column-content');
+
+                const itemName = prompt("Enter new item name:", "New Item");
+                if (!itemName) return;
+                const itemVolume = prompt("Enter search volume (e.g., (100) or leave empty):", "");
+
+                const itemData = { text: itemName, volume: itemVolume || "" };
+                const itemClass = columnContent.dataset.columnType === 'sub-category' ? 'sub-category-item' : 'filter-value-item';
+                
+                const newItemElement = createFilterItemElement(itemData, itemClass);
+                columnContent.appendChild(newItemElement);
+            }
+            // Attach to existing add item buttons (subCategoryCol already has one)
+            document.querySelectorAll('.add-item-btn').forEach(btn => btn.addEventListener('click', handleAddItemToColumn));
+
+
+            // --- Add New Column Functionality ---
+            addNewColumnBtn.addEventListener('click', () => {
+                const columnTitle = prompt("Enter new filter column title:", "New Filter");
+                if (!columnTitle) return;
+
+                const newColumnData = {
+                    id: `customColumn-${Date.now()}`, // Unique ID
+                    title: columnTitle,
+                    items: [] // Starts empty
+                };
+                const newColumnElement = createFilterColumnElement(newColumnData);
+                filtersGridContainer.appendChild(newColumnElement);
+            });
+        });
+    </script>
+</body>
+</html>
